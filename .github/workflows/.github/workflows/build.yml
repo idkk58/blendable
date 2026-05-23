@@ -1,0 +1,94 @@
+name: Build Blendable
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-13
+
+    steps:
+      - name: Checkout Blendable repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install cmake ninja python@3.11 pkg-config jpeg libpng openexr
+
+      - name: Clone Blender 3.6
+        run: |
+          git clone --depth=1 --branch v3.6.0 \
+            https://projects.blender.org/blender/blender.git blender-src
+
+      - name: Download precompiled Blender libraries
+        run: |
+          cd blender-src
+          make update
+
+      - name: Apply Blendable patches
+        run: |
+          cd blender-src
+          for patch in ../patches/*.patch; do
+            echo "Applying $patch..."
+            git apply --ignore-whitespace "$patch" || {
+              echo "WARNING: $patch failed, applying with --reject"
+              git apply --reject --ignore-whitespace "$patch" || true
+            }
+          done
+
+      - name: Configure CMake
+        run: |
+          mkdir -p build
+          cd build
+          cmake ../blender-src \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWITH_METAL_BACKEND=OFF \
+            -DWITH_OPENGL_BACKEND=ON \
+            -DWITH_CYCLES_EMBREE=OFF \
+            -DWITH_OIDN=OFF \
+            -DWITH_CYCLES_OSL=OFF \
+            -DWITH_OPENMP=OFF \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15" \
+            -DCMAKE_OSX_ARCHITECTURES="x86_64" \
+            -DWITH_GHOST_WAYLAND=OFF \
+            -DWITH_HEADLESS=OFF \
+            -DWITH_PYTHON_MODULE=OFF \
+            -DBLENDER_VERSION_SUFFIX="-blendable" \
+            -DCMAKE_C_FLAGS="-march=ivybridge -O2" \
+            -DCMAKE_CXX_FLAGS="-march=ivybridge -O2"
+
+      - name: Build
+        run: |
+          cd build
+          ninja -j$(sysctl -n hw.ncpu)
+
+      - name: Stage app
+        run: |
+          cd build
+          ninja install
+          mv /Applications/Blender.app /Applications/Blendable.app || true
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "Blendable" \
+            --window-pos 200 120 \
+            --window-size 660 400 \
+            --icon-size 128 \
+            --icon "Blendable.app" 180 170 \
+            --hide-extension "Blendable.app" \
+            --app-drop-link 480 170 \
+            --no-internet-enable \
+            "Blendable.dmg" \
+            "/Applications/Blendable.app"
+
+      - name: Upload DMG as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Blendable-dmg
+          path: Blendable.dmg
+          retention-days: 30
