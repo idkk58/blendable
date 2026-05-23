@@ -1,0 +1,76 @@
+--- a/intern/ghost/intern/GHOST_WindowCocoa.mm
++++ b/intern/ghost/intern/GHOST_WindowCocoa.mm
+@@ -1,5 +1,8 @@
+ /* SPDX-License-Identifier: GPL-2.0-or-later */
++/* Blendable: macOS native window integration
++ * Adds: NSVisualEffectView sidebar blur, unified title bar,
++ *       traffic light (close/min/max) preservation, and Ventura-style
++ *       rounded window corners. Requires macOS 11+.               */
+ 
++#import <AppKit/AppKit.h>
++
+ @@ -140,6 +144,60 @@ GHOST_WindowCocoa::GHOST_WindowCocoa(...)
+  {
+   ...
++
++  /* ── BLENDABLE: Native macOS window appearance ────── */
++  NSWindow *ns_window = (NSWindow *)m_window;
++
++  /* 1. Full-size content view — content extends under title bar */
++  [ns_window setStyleMask: [ns_window styleMask]
++                          | NSWindowStyleMaskFullSizeContentView];
++
++  /* 2. Hide title text, show only traffic lights */
++  [ns_window setTitlebarAppearsTransparent:YES];
++  [ns_window setTitleVisibility:NSWindowTitleHidden];
++
++  /* 3. Unified toolbar look */
++  [ns_window setToolbar:nil];
++
++  /* 4. NSVisualEffectView as window background for sidebar blur
++   *    This gives the sidebar/properties panel the frosted glass effect */
++  NSVisualEffectView *vev = [[NSVisualEffectView alloc] initWithFrame:
++                              [[ns_window contentView] bounds]];
++  [vev setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
++
++  /* Use .sidebar material for the characteristic macOS frosted look */
++  if (@available(macOS 11.0, *)) {
++    [vev setMaterial:NSVisualEffectMaterialSidebar];
++  } else {
++    [vev setMaterial:NSVisualEffectMaterialMediumLight];
++  }
++  [vev setBlendingMode:NSVisualEffectBlendingModeBehindWindow];
++  [vev setState:NSVisualEffectStateFollowsWindowActiveState];
++
++  /* Insert blur view BEHIND Blender's own OpenGL view */
++  NSView *content = [ns_window contentView];
++  [content addSubview:vev positioned:NSWindowBelow relativeTo:nil];
++
++  /* 5. Rounded window corners (Ventura already does this, but enforce) */
++  if (@available(macOS 12.0, *)) {
++    /* Ventura default is fine; nothing needed */
++  }
++
++  /* 6. Subtle shadow */
++  [ns_window setHasShadow:YES];
++
++  /* IMPORTANT: Blender's Metal/OpenGL view must have transparent background
++   * so the NSVisualEffectView blur shows through on the sidebar area.
++   * Set this in blendable_opengl_transparent.patch (patch 05).          */
++
++  [vev release];
++  /* ── END BLENDABLE ──────────────────────────────────── */
+  }
+ 
++/* Blendable: update vibrancy state when window focus changes */
++@@ -300,6 +358,12 @@ void GHOST_WindowCocoa::setWindowFocus(bool focus)
++ {
++   NSWindow *ns_window = (NSWindow *)m_window;
++   NSVisualEffectView *vev = (NSVisualEffectView *)[[ns_window contentView]
++                               viewWithTag:BLENDABLE_VEV_TAG];
++   if (vev) {
++     [vev setState: focus
++               ? NSVisualEffectStateActive
++               : NSVisualEffectStateInactive];
++   }
++ }

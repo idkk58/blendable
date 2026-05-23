@@ -1,0 +1,110 @@
+--- a/source/blender/editors/interface/interface_widgets.cc
++++ b/source/blender/editors/interface/interface_widgets.cc
+@@ -1,6 +1,10 @@
+ /* SPDX-License-Identifier: GPL-2.0-or-later */
+ /* Blendable Fork - Apple-style UI overhaul */
++/* Target: macOS Ventura (OCLP), 2012 MacBook Pro, Intel HD 4000 */
+ 
++/* ── BLENDABLE CONSTANTS ───────────────────────────────────────────
++ * All UI geometry tweaks are grouped here for easy adjustment.
++ * ────────────────────────────────────────────────────────────────── */
++#define BLENDABLE_CORNER_RADIUS     10.0f   /* macOS-style rounding   */
++#define BLENDABLE_INNER_RADIUS       8.0f   /* inner highlight curve  */
++#define BLENDABLE_SHADOW_ALPHA       0.10f  /* subtle drop shadow     */
++#define BLENDABLE_HOVER_ALPHA        0.06f  /* hover tint strength    */
++#define BLENDABLE_ACTIVE_ALPHA       0.12f  /* pressed tint strength  */
++#define BLENDABLE_SEPARATOR_ALPHA    0.12f  /* panel divider opacity  */
++#define BLENDABLE_BLUR_HINT          1      /* request bg blur (NSVisualEffectView hook) */
++
+ /* --- Round corners on ALL buttons --- */
+ /* Find the function: widget_roundbox_set()                          */
+-/* Original: round_box_edges(&wtb, roundboxalign, rect, 4.0f);      */
++/* Patched:  round_box_edges(&wtb, roundboxalign, rect, BLENDABLE_CORNER_RADIUS); */
+ 
+ @@ -112,7 +116,7 @@ static void widget_roundbox_set(uiWidgetBase *wtb,
+                                   const rcti *rect,
+                                   float rad)
+  {
+-   round_box_edges(wtb, roundboxalign, rect, rad);
++   round_box_edges(wtb, roundboxalign, rect,
++                   (rad < BLENDABLE_CORNER_RADIUS) ? BLENDABLE_CORNER_RADIUS : rad);
+  }
+ 
+ /* --- Remove harsh inner bevel highlight --- */
+@@ -201,14 +205,14 @@ static void widget_draw_preview(BIFIconID icon,
+ /* Find: widget_draw_text_icon -> shadecolors */
+-  shadecolors4(coltop, coldown, wcol->inner, wcol->shadetop, wcol->shadedown);
++  /* Flatten gradient for Apple look — single fill, no bevel */
++  copy_v4_v4(coltop,  wcol->inner);
++  copy_v4_v4(coldown, wcol->inner);
+ 
+ /* --- Softer pressed state (darken only slightly) --- */
+-  if (state & UI_SELECT) {
+-    interp_v3_v3v3(wcol->inner, wcol->inner, wcol->inner_sel, 1.0f);
++  if (state & UI_SELECT) {
++    /* Blend toward selected color at reduced strength for subtlety */
++    interp_v3_v3v3(wcol->inner, wcol->inner, wcol->inner_sel, 0.55f);
+  }
+ 
+ /* --- Remove thick outlines on text inputs --- */
+@@ -340,7 +344,10 @@ static void widget_softshadow(const rcti *rect,
+                                float radin,
+                                float radout)
+  {
+-  /* Original shadow is too dark and blocky */
++  /* Blendable: feathered shadow, very low alpha, Apple style */
+   bTheme *btheme = UI_GetTheme();
+-  float alpha = 0.5f;
++  float alpha = BLENDABLE_SHADOW_ALPHA;
++  float ofs   = 2.0f;   /* tighter offset */
+   ...
+  }
+ 
+ /* --- Sliders: rounded pill shape --- */
+@@ -490,7 +497,7 @@ static void widget_numslider(...)
+ {
+-  const float offs = 0.5f * BLI_rcti_size_y(rect);
++  /* Pill-shaped slider track like macOS */
++  const float offs = 0.5f * BLI_rcti_size_y(rect) * 0.85f;
+   ...
+   /* Thumb: circular, white with shadow */
+-  UI_draw_roundbox_corner_set(UI_CNR_ALL);
++  UI_draw_roundbox_corner_set(UI_CNR_ALL);  /* already all-corners */
++  /* Draw white thumb circle */
++  float thumb_col[4] = {1.0f, 1.0f, 1.0f, 1.0f};
++  UI_draw_roundbox_4fv(&thumb_rect, true, offs * 0.9f, thumb_col);
++  /* Subtle shadow under thumb */
++  float shadow_col[4] = {0.0f, 0.0f, 0.0f, BLENDABLE_SHADOW_ALPHA * 1.5f};
++  UI_draw_roundbox_4fv(&shadow_rect, false, offs * 0.9f, shadow_col);
+  }
+ 
+ /* --- Checkboxes: SF-style rounded square with checkmark --- */
+@@ -560,8 +567,14 @@ static void widget_checkbox(...)
+ {
+-  /* Original: hard square */
++  /* Blendable: rounded square, accent-color fill when checked */
++  const float check_radius = 4.5f;
++  if (state & UI_SELECT) {
++    /* Filled with accent color (set in theme: defaults to #0A84FF Apple blue) */
++    UI_draw_roundbox_corner_set(UI_CNR_ALL);
++    UI_draw_roundbox_4fv(rect, true, check_radius, wcol->inner_sel);
++    /* White checkmark drawn via icon */
++  } else {
++    /* Unfilled, border only */
++    UI_draw_roundbox_corner_set(UI_CNR_ALL);
++    UI_draw_roundbox_4fv(rect, false, check_radius, wcol->outline);
++  }
+  }
+ 
+ /* --- Menus: no thick border, soft shadow --- */
+@@ -700,6 +713,8 @@ static void ui_draw_menu_back(uiStyle *style,
+                                uiBlock *block,
+                                const rcti *rect)
+  {
++  /* Blendable: frosted glass feel — translucent panel bg */
++  /* The actual blur requires the GHOST/Cocoa hook (see 04_cocoa_vibrancy.patch) */
++  /* Here we just set the fill alpha lower so the blur shows through */
+   uiWidgetColors *wcol = &btheme->tui.wcol_menu_back;
++  wcol->inner[3] = 230;   /* was 255 — slightly translucent */
+   widget_draw_preview(0, 1.0f, rect);
+  }

@@ -1,0 +1,62 @@
+--- a/source/blender/editors/interface/interface_layout.cc
++++ b/source/blender/editors/interface/interface_layout.cc
+@@ -1,5 +1,7 @@
+ /* SPDX-License-Identifier: GPL-2.0-or-later */
++/* Blendable: Apple HIG-inspired spacing and layout */
+ 
++/* ── BLENDABLE LAYOUT METRICS ──────────────────────────────────────
++ * Apple Human Interface Guidelines minimum touch target: 44×44pt
++ * Blender uses pixels; on a 2012 MBP Retina, 1pt ≈ 2px.
++ * We increase button heights and padding to feel airy and native.
++ * ────────────────────────────────────────────────────────────────── */
++
+ @@ -55,10 +59,10 @@ namespace blender::ui {
+ 
+-static const int UI_UNIT_Y_DEFAULT    = 20;   /* button height */
+-static const int UI_HEADER_PANEL_PAD  = 4;
+-static const int UI_PANEL_HEADER_Y    = 18;
+-static const int UI_ITEM_SPACING      = 2;    /* gap between items */
+-static const int UI_SIDEBAR_MIN_W     = 200;
++/* Blendable values */
++static const int UI_UNIT_Y_DEFAULT    = 26;   /* taller buttons (≈macOS control height) */
++static const int UI_HEADER_PANEL_PAD  = 8;    /* more breathing room */
++static const int UI_PANEL_HEADER_Y    = 22;   /* taller panel headers */
++static const int UI_ITEM_SPACING      = 5;    /* more gap between items */
++static const int UI_SIDEBAR_MIN_W     = 220;  /* wider sidebar for readability */
+ 
++/* Blendable: section label spacing */
++static const int UI_SECTION_TOP_PAD   = 10;
++static const int UI_SECTION_BOT_PAD   = 4;
+ 
+ @@ -200,8 +208,12 @@ static uiButGridFlow *ui_layout_panel_header(...)
+  {
+-  /* Original: label text, no indent */
++  /* Blendable: uppercase section headers like macOS grouped UI */
++  /* Apply via Python side (see release/scripts/startup/bl_ui patches) */
++  /* Here we just increase the padding above each section header */
+   uiLayout *row = uiLayoutRow(layout, false);
++  uiLayoutSetSpace(row, UI_SECTION_TOP_PAD);
+   ...
+  }
+ 
+ /* ── Icon sizes: match SF Symbols optical sizing ── */
+@@ -310,7 +322,7 @@ int UI_icon_size_ex(int size)
+ {
+-  return size;
++  /* Blendable: bump icons by 2px for Retina clarity */
++  return size + 2;
+ }
+ 
+ /* ── Separator lines: lighter, thinner ─────────── */
+@@ -400,8 +416,10 @@ static void ui_draw_separator(const rcti *rect,
+                                uiWidgetColors *wcol)
+ {
+-  /* Original: full-opacity 1px line */
+-  float color[4] = {0.0f, 0.0f, 0.0f, 0.3f};
++  /* Blendable: hairline separator, Apple system color */
++  float color[4] = {0.776f, 0.776f, 0.784f, 0.5f};  /* #C6C6C8 @ 50% */
+   GPU_blend(GPU_BLEND_ALPHA);
+-  immUniformColor4fv(color);
++  immUniformColor4fv(color);
++  /* 1px thickness preserved */
+ }

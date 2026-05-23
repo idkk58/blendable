@@ -1,0 +1,107 @@
+--- a/source/blender/blenkernel/intern/blendtheme.cc
++++ b/source/blender/blenkernel/intern/blendtheme.cc
+@@ -1,5 +1,7 @@
+ /* SPDX-License-Identifier: GPL-2.0-or-later */
++/* Blendable: Apple-inspired default color palette */
++/* Based on macOS Ventura light mode system colors   */
+ 
++/* ── BLENDABLE PALETTE ─────────────────────────────────────────────
++ * All colors are RGBA 0-255. These become Blender's startup defaults.
++ *
++ * Apple System Colors (Ventura Light):
++ *   Accent Blue:    #0A84FF  →  {10,  132, 255, 255}
++ *   Label Primary:  #000000  →  {0,   0,   0,   255}
++ *   BG Primary:     #ECECEC  →  {236, 236, 236, 255}
++ *   BG Secondary:   #F5F5F5  →  {245, 245, 245, 255}
++ *   BG Tertiary:    #FFFFFF  →  {255, 255, 255, 255}
++ *   Separator:      #C6C6C8  →  {198, 198, 200, 30 }
++ *   Fill Primary:   #787880  →  {120, 120, 128, 45 }
++ *   Fill Secondary: #787880  →  {120, 120, 128, 30 }
++ * ────────────────────────────────────────────────────────────────── */
++
++/* Helper macro: pack uchar RGBA into theme color array */
++#define BLENDABLE_COL(r, g, b, a) {(uchar)(r), (uchar)(g), (uchar)(b), (uchar)(a)}
++
+ @@ -400,7 +418,7 @@ static void ui_theme_init_default_theme(bTheme *btheme)
+  {
+-  /* ── BUTTONS ──────────────────────────────────────── */
++  /* ── BLENDABLE BUTTONS ────────────────────────────── */
+   uiWidgetColors *wcol_but = &btheme->tui.wcol_but;
+-  rgba_char_args_set(wcol_but->outline,    0x19, 0x19, 0x19, 0xFF);
+-  rgba_char_args_set(wcol_but->inner,      0x45, 0x45, 0x45, 0xFF);
+-  rgba_char_args_set(wcol_but->inner_sel,  0x64, 0x64, 0x64, 0xFF);
+-  rgba_char_args_set(wcol_but->item,       0xAC, 0xAC, 0xAC, 0xFF);
+-  rgba_char_args_set(wcol_but->text,       0xFF, 0xFF, 0xFF, 0xFF);
+-  rgba_char_args_set(wcol_but->text_sel,   0xFF, 0xFF, 0xFF, 0xFF);
++  /* Apple-style: light gray fill, near-invisible border, dark text */
++  rgba_char_args_set(wcol_but->outline,    0xC6, 0xC6, 0xC8, 0x55);  /* subtle border   */
++  rgba_char_args_set(wcol_but->inner,      0xF5, 0xF5, 0xF5, 0xFF);  /* off-white fill  */
++  rgba_char_args_set(wcol_but->inner_sel,  0x0A, 0x84, 0xFF, 0xFF);  /* Apple Blue sel  */
++  rgba_char_args_set(wcol_but->item,       0x0A, 0x84, 0xFF, 0xFF);  /* accent          */
++  rgba_char_args_set(wcol_but->text,       0x1C, 0x1C, 0x1E, 0xFF);  /* near-black text */
++  rgba_char_args_set(wcol_but->text_sel,   0xFF, 0xFF, 0xFF, 0xFF);  /* white on blue   */
++  wcol_but->shadetop  = 0;   /* flat — no gradient */
++  wcol_but->shadedown = 0;
+ 
+-  /* ── TOOLBARS / HEADERS ───────────────────────────── */
++  /* ── BLENDABLE TOOLBARS / HEADERS ────────────────────────────── */
++  /* Sidebar, header bars: macOS toolbar gray */
+   uiWidgetColors *wcol_toolbar = &btheme->tui.wcol_toolbar_item;
+-  rgba_char_args_set(wcol_toolbar->inner,     0x3D, 0x3D, 0x3D, 0xFF);
++  rgba_char_args_set(wcol_toolbar->inner,     0xEC, 0xEC, 0xEC, 0xFF);
++  rgba_char_args_set(wcol_toolbar->outline,   0xC6, 0xC6, 0xC8, 0x40);
++  rgba_char_args_set(wcol_toolbar->text,      0x1C, 0x1C, 0x1E, 0xFF);
++  rgba_char_args_set(wcol_toolbar->inner_sel, 0x0A, 0x84, 0xFF, 0xFF);
++  rgba_char_args_set(wcol_toolbar->text_sel,  0xFF, 0xFF, 0xFF, 0xFF);
+ 
+-  /* ── MENUS ────────────────────────────────────────── */
++  /* ── BLENDABLE MENUS ──────────────────────────────── */
+   uiWidgetColors *wcol_menu = &btheme->tui.wcol_menu;
+-  rgba_char_args_set(wcol_menu->inner,      0x1A, 0x1A, 0x1A, 0xFF);
+-  rgba_char_args_set(wcol_menu->outline,    0x1A, 0x1A, 0x1A, 0xFF);
++  rgba_char_args_set(wcol_menu->inner,      0xF5, 0xF5, 0xF7, 0xE8);  /* semi-transparent */
++  rgba_char_args_set(wcol_menu->outline,    0xC6, 0xC6, 0xC8, 0x50);
++  rgba_char_args_set(wcol_menu->text,       0x1C, 0x1C, 0x1E, 0xFF);
++  rgba_char_args_set(wcol_menu->inner_sel,  0x0A, 0x84, 0xFF, 0xFF);
++  rgba_char_args_set(wcol_menu->text_sel,   0xFF, 0xFF, 0xFF, 0xFF);
+ 
+-  /* ── NUMBER FIELDS ────────────────────────────────── */
++  /* ── BLENDABLE NUMBER FIELDS ──────────────────────── */
+   uiWidgetColors *wcol_num = &btheme->tui.wcol_num;
+-  rgba_char_args_set(wcol_num->inner,     0x3D, 0x3D, 0x3D, 0xFF);
++  rgba_char_args_set(wcol_num->inner,     0xFF, 0xFF, 0xFF, 0xFF);  /* white input     */
++  rgba_char_args_set(wcol_num->outline,   0xC6, 0xC6, 0xC8, 0x80);
++  rgba_char_args_set(wcol_num->text,      0x1C, 0x1C, 0x1E, 0xFF);
++  rgba_char_args_set(wcol_num->inner_sel, 0xE8, 0xF4, 0xFF, 0xFF);  /* light blue focus */
+ 
+-  /* ── PANEL BACKGROUNDS ────────────────────────────── */
++  /* ── BLENDABLE PANEL BACKGROUNDS ─────────────────── */
+   btheme->space_properties.back[0] = 236;
+   btheme->space_properties.back[1] = 236;
+   btheme->space_properties.back[2] = 236;
+   btheme->space_properties.back[3] = 255;
+ 
++  /* Properties sub-panel: slightly lighter */
++  btheme->space_properties.panelcolors.back[0] = 245;
++  btheme->space_properties.panelcolors.back[1] = 245;
++  btheme->space_properties.panelcolors.back[2] = 245;
++  btheme->space_properties.panelcolors.back[3] = 245;  /* slight transparency */
++
++  /* 3D Viewport background: Apple's neutral */
++  btheme->space_view3d.gradients.high_gradient[0] = 0.89f;
++  btheme->space_view3d.gradients.high_gradient[1] = 0.89f;
++  btheme->space_view3d.gradients.high_gradient[2] = 0.89f;
++
++  /* Header bar: match macOS toolbar exactly */
++  btheme->space_view3d.header[0] = 200;
++  btheme->space_view3d.header[1] = 200;
++  btheme->space_view3d.header[2] = 200;
++  btheme->space_view3d.header[3] = 255;
++
++  /* ── BLENDABLE PANEL HEADER ───────────────────────── */
++  /* Subtle separator line between panels, no heavy bar */
++  btheme->space_properties.panelcolors.header[0] = 236;
++  btheme->space_properties.panelcolors.header[1] = 236;
++  btheme->space_properties.panelcolors.header[2] = 236;
++  btheme->space_properties.panelcolors.header[3] = 255;
+ }

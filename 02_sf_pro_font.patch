@@ -1,0 +1,73 @@
+--- a/source/blender/blenfont/intern/blf.c
++++ b/source/blender/blenfont/intern/blf.c
+@@ -1,5 +1,7 @@
+ /* SPDX-License-Identifier: GPL-2.0-or-later */
++/* Blendable: SF Pro font integration for macOS */
+ 
++/* macOS font paths — Ventura ships SF Pro as a system font */
++#define BLENDABLE_FONT_UI_REGULAR  "/System/Library/Fonts/SFNS.ttf"
++#define BLENDABLE_FONT_UI_MEDIUM   "/System/Library/Fonts/SFNS.ttf"
++/* Fallback if SFNS not found (e.g. older OCLP installs) */
++#define BLENDABLE_FONT_FALLBACK    "/Library/Fonts/SF-Pro-Text-Regular.otf"
++/* Monospace for Python console, node labels */
++#define BLENDABLE_FONT_MONO        "/System/Library/Fonts/SFMono-Regular.otf"
++
+ @@ -180,10 +184,30 @@ static int blf_load_font_default(void)
+  {
+-  /* Original loads bundled DejaVu Sans */
+-  const char *filepath = BKE_appdir_folder_id(BLENDER_DATAFILES, "fonts/droidsans.ttf");
++  /* Blendable: prefer SF Pro, fall back gracefully */
++  const char *sf_path = BLENDABLE_FONT_UI_REGULAR;
++  const char *fallback = BLENDABLE_FONT_FALLBACK;
++  const char *droidsans = BKE_appdir_folder_id(BLENDER_DATAFILES, "fonts/droidsans.ttf");
++
++  /* Try SF Pro first */
++  if (BLI_exists(sf_path)) {
++    global_font_default = BLF_load(sf_path);
++    if (global_font_default != -1) {
++      printf("Blendable: loaded SF Pro from %s\n", sf_path);
++      return global_font_default;
++    }
++  }
++  /* Try legacy SF Pro path */
++  if (BLI_exists(fallback)) {
++    global_font_default = BLF_load(fallback);
++    if (global_font_default != -1) {
++      printf("Blendable: loaded SF Pro fallback from %s\n", fallback);
++      return global_font_default;
++    }
++  }
++  /* Last resort: bundled font */
++  printf("Blendable: SF Pro not found, falling back to DroidSans\n");
++  global_font_default = BLF_load(droidsans);
+   return global_font_default;
+  }
+ 
++/* Monospace font for console/code areas */
+ @@ -210,7 +240,14 @@ static int blf_load_font_mono(void)
+  {
+-  const char *filepath = BKE_appdir_folder_id(BLENDER_DATAFILES, "fonts/droidsansmono.ttf");
++  if (BLI_exists(BLENDABLE_FONT_MONO)) {
++    global_font_mono = BLF_load(BLENDABLE_FONT_MONO);
++    if (global_font_mono != -1) return global_font_mono;
++  }
++  const char *filepath = BKE_appdir_folder_id(BLENDER_DATAFILES, "fonts/droidsansmono.ttf");
+   global_font_mono = BLF_load(filepath);
+   return global_font_mono;
+  }
+ 
+ /* --- Font size & weight adjustments --- */
+ /* Blendable uses slightly larger base sizes and tighter tracking */
+@@ -300,8 +340,12 @@ void BLF_size(int fontid, float size, int dpi)
+  {
+   FontBLF *font = blf_get(fontid);
+   if (font) {
+-    /* Original DPI-based sizing */
++    /* Blendable: bump base UI size from ~11pt to 13pt for Retina clarity */
++    /* Only scale the UI font (id 0), leave others untouched */
++    if (fontid == global_font_default && size < 13.0f) {
++      size = 13.0f;
++    }
+     blf_font_size(font, size, dpi);
+   }
+  }
